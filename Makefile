@@ -29,7 +29,7 @@ dep_emq_auth_mysql    = git https://github.com/emqtt/emq-auth-mysql emq24
 dep_emq_auth_pgsql    = git https://github.com/emqtt/emq-auth-pgsql emq24
 dep_emq_auth_redis    = git https://github.com/emqtt/emq-auth-redis emq24
 dep_emq_auth_mongo    = git https://github.com/emqtt/emq-auth-mongo emq24
-dep_emq_auth_jwt      = git https://github.com/emqtt/emq-auth-jwt emq24
+dep_emq_auth_jwt      = git https://github.com/TeamAlbi/emqx-auth-jwt.git emq24
 
 # mqtt-sn, coap and stomp
 dep_emq_sn    = git https://github.com/emqtt/emq-sn emq24
