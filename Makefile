@@ -1,54 +1,59 @@
 PROJECT = emqx-rel
 PROJECT_DESCRIPTION = Release Project for EMQ X Broker
-PROJECT_VERSION = 3.0
 
-DEPS = goldrush
-dep_goldrush = git https://github.com/basho/goldrush 0.1.9
+# All emqx app names. Repo name, not Erlang app name
+# By default, app name is the same as repo name with dash replaced by underscore.
+# Otherwise define the dependency in regular erlang.mk style:
+## DEPS += emqx
+## dep_emqx = git https://github.com/emqx/emqx.git emqx30
 
-DEPS += emqx emqx_retainer emqx_recon emqx_reloader emqx_dashboard emqx_management \
-		emqx_auth_clientid emqx_auth_username emqx_auth_ldap emqx_auth_http \
-        emqx_auth_mysql emqx_auth_pgsql emqx_auth_redis emqx_auth_mongo \
-        emqx_sn emqx_coap emqx_lwm2m emqx_stomp emqx_plugin_template emqx_web_hook \
-        emqx_auth_jwt emqx_statsd emqx_delayed_publish emqx_lua_hook
+# Default release profiles
+RELX_OUTPUT_DIR ?= _rel
+REL_PROFILE ?= dev
 
-# emqx and plugins
-dep_emqx            = git https://github.com/emqx/emqx emqx30
-dep_emqx_retainer   = git https://github.com/emqx/emqx-retainer emqx30
-dep_emqx_recon      = git https://github.com/emqx/emqx-recon emqx30
-dep_emqx_reloader   = git https://github.com/emqx/emqx-reloader emqx30
-dep_emqx_dashboard  = git https://github.com/emqx/emqx-dashboard emqx30
-dep_emqx_management = git https://github.com/emqx/emqx-management emqx30
-dep_emqx_statsd     = git https://github.com/emqx/emqx-statsd emqx30
-dep_emqx_delayed_publish = git https://github.com/emqx/emqx-delayed-publish emqx30
+# Deploy to edge or cloud
+DEPLOY ?= cloud
 
-# emq auth/acl plugins
-dep_emqx_auth_clientid = git https://github.com/emqx/emqx-auth-clientid emqx30
-dep_emqx_auth_username = git https://github.com/emqx/emqx-auth-username emqx30
-dep_emqx_auth_ldap     = git https://github.com/emqx/emqx-auth-ldap emqx30
-dep_emqx_auth_http     = git https://github.com/emqx/emqx-auth-http emqx30
-dep_emqx_auth_mysql    = git https://github.com/emqx/emqx-auth-mysql emqx30
-dep_emqx_auth_pgsql    = git https://github.com/emqx/emqx-auth-pgsql emqx30
-dep_emqx_auth_redis    = git https://github.com/emqx/emqx-auth-redis emqx30
-dep_emqx_auth_mongo    = git https://github.com/emqx/emqx-auth-mongo emqx30
-dep_emqx_auth_jwt      = git https://github.com/emqx/emqx-auth-jwt emqx30
+MAIN_APPS = emqx emqx-retainer emqx-recon emqx-management \
+            emqx-auth-clientid emqx-auth-username emqx-auth-http \
+            emqx-auth-mysql emqx-reloader \
+            emqx-sn emqx-coap emqx-stomp emqx-web-hook \
+            emqx-auth-jwt emqx-delayed-publish
 
-# mqtt-sn, coap and stomp
-dep_emqx_sn    = git https://github.com/emqx/emqx-sn emqx30
-dep_emqx_coap  = git https://github.com/emqx/emqx-coap emqx30
-dep_emqx_lwm2m = git https://github.com/emqx/emqx-lwm2m emqx30
-dep_emqx_stomp = git https://github.com/emqx/emqx-stomp emqx30
+CLOUD_APPS = emqx-lwm2m emqx-dashboard emqx-auth-ldap emqx-auth-pgsql emqx-auth-redis emqx-auth-mongo emqx-plugin-template emqx-statsd emqx-lua-hook
 
-# plugin template
-dep_emqx_plugin_template = git https://github.com/emqx/emq-plugin-template emqx30
+ifeq (cloud,$(DEPLOY))
+  MAIN_APPS += $(CLOUD_APPS)
+endif
 
-# web_hook
-dep_emqx_web_hook  = git https://github.com/emqx/emqx-web-hook emqx30
-dep_emqx_lua_hook  = git https://github.com/emqx/emqx-lua-hook emqx30
+# Default version for all MAIN_APPS
+## This is either a tag or branch name for ALL dependencies
+EMQX_DEPS_DEFAULT_VSN ?= v3.0.0
+
+dash = -
+uscore = _
+
+# Make Erlang app name from repo name.
+# Replace dashes with underscores
+app_name = $(subst $(dash),$(uscore),$(1))
+
+# set emqx_app_name_vsn = x.y.z to override default version
+app_vsn = $(if $($(call app_name,$(1))_vsn),$($(call app_name,$(1))_vsn),$(EMQX_DEPS_DEFAULT_VSN))
+
+DEPS += $(foreach dep,$(MAIN_APPS),$(call app_name,$(dep)))
+
+# Inject variables like
+# dep_app_name = git-emqx https://github.com/emqx/app-name branch-or-tag
+# for erlang.mk
+$(foreach dep,$(MAIN_APPS),$(eval dep_$(call app_name,$(dep)) = git-emqx https://github.com/emqx/$(dep) $(call app_vsn,$(dep))))
 
 # Add this dependency before including erlang.mk
 all:: OTP_21_OR_NEWER
 
 # COVER = true
+
+$(shell [ -f erlang.mk ] || curl -s -o erlang.mk https://raw.githubusercontent.com/emqx/erlmk/master/erlang.mk)
+
 include erlang.mk
 
 # Fail fast in case older than OTP 21
@@ -77,4 +82,25 @@ plugins:
 		cp $${schema} rel/schema/ ; \
 	done
 
-app:: plugins
+vm_args:
+	@if [ $(DEPLOY) = "cloud" ] ; then \
+		cp deps/emqx/etc/vm.args rel/conf/vm.args ; \
+	else \
+		cp deps/emqx/etc/vm.args.$(DEPLOY) rel/conf/vm.args ; \
+	fi ;
+
+relx_conf:
+	@if [ $(DEPLOY) != "cloud" ] ; then \
+		cp relx.config.$(DEPLOY) relx.config ; \
+	fi ;
+
+loaded_plugins:
+	@if [ $(DEPLOY) != "cloud" ] ; then \
+		cp data/loaded_plugins.$(DEPLOY) data/loaded_plugins ; \
+	fi ;
+
+app:: plugins vm_args relx_conf loaded_plugins vars-ln
+
+vars-ln:
+	ln -s -f vars-$(REL_PROFILE).config vars.config
+

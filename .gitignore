@@ -20,3 +20,5 @@ ct/logs/*
 .idea/
 *.d
 *.iml
+vars.config
+erlang.mk
