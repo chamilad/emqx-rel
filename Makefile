@@ -18,10 +18,10 @@ MAIN_APPS = emqx emqx-retainer emqx-recon emqx-management \
             emqx-auth-clientid emqx-auth-username \
             emqx-auth-mysql emqx-reloader \
             emqx-sn emqx-coap emqx-stomp emqx-web-hook \
-            emqx-delayed-publish emqx-auth-jwt
+            emqx-delayed-publish
 
 # Customised plugins
-ALBI_APPS = emqx-auth-http
+ALBI_APPS = emqx-auth-jwt emqx-auth-http
 
 CLOUD_APPS = emqx-lwm2m emqx-dashboard emqx-auth-ldap emqx-auth-pgsql emqx-auth-redis emqx-auth-mongo emqx-plugin-template emqx-statsd emqx-lua-hook
 
@@ -31,7 +31,7 @@ endif
 
 # Default version for all MAIN_APPS
 ## This is either a tag or branch name for ALL dependencies
-EMQX_DEPS_DEFAULT_VSN ?= emqx30
+EMQX_DEPS_DEFAULT_VSN ?= v3.0.0
 
 dash = -
 uscore = _
