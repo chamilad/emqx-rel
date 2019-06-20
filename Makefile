@@ -14,7 +14,7 @@ REL_PROFILE ?= dev
 # Deploy to edge or cloud
 DEPLOY ?= cloud
 
-MAIN_APPS = emqx emqx-retainer emqx-recon emqx-management \
+MAIN_APPS = emqx-retainer emqx-recon emqx-management \
             emqx-auth-clientid emqx-auth-username \
             emqx-auth-mysql emqx-reloader \
             emqx-sn emqx-coap emqx-stomp emqx-web-hook \
@@ -22,6 +22,7 @@ MAIN_APPS = emqx emqx-retainer emqx-recon emqx-management \
 
 # Customised plugins
 ALBI_APPS = emqx-auth-jwt emqx-auth-http
+CH_APPS = emqx
 
 CLOUD_APPS = emqx-lwm2m emqx-dashboard emqx-auth-ldap emqx-auth-pgsql emqx-auth-redis emqx-auth-mongo emqx-plugin-template emqx-statsd emqx-lua-hook
 
@@ -45,12 +46,14 @@ app_vsn = $(if $($(call app_name,$(1))_vsn),$($(call app_name,$(1))_vsn),$(EMQX_
 
 DEPS += $(foreach dep,$(MAIN_APPS),$(call app_name,$(dep)))
 DEPS += $(foreach dep,$(ALBI_APPS),$(call app_name,$(dep)))
+DEPS += $(foreach dep,$(CH_APPS),$(call app_name,$(dep)))
 
 # Inject variables like
 # dep_app_name = git-emqx https://github.com/emqx/app-name branch-or-tag
 # for erlang.mk
 $(foreach dep,$(MAIN_APPS),$(eval dep_$(call app_name,$(dep)) = git-emqx https://github.com/emqx/$(dep) $(call app_vsn,$(dep))))
 $(foreach dep,$(ALBI_APPS),$(eval dep_$(call app_name,$(dep)) = git-emqx https://github.com/TeamAlbi/$(dep).git emqx30))
+$(foreach dep,$(CH_APPS),$(eval dep_$(call app_name,$(dep)) = git-emqx https://github.com/chamilad/$(dep).git emqx30))
 
 # Add this dependency before including erlang.mk
 all:: OTP_21_OR_NEWER
